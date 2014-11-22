@@ -14,7 +14,7 @@
 %error-verbose
 
 /* WRITEME: Copy your token and precedence specifiers from Project 3 here */
-%token <integer_ptr> T_NUMBER
+%token <integer_ptr> T_NUMBER <identifier_ptr> T_IDENTIFIER
 %token T_CHILDCLASS_IDENTIFIER T_DECLARATION_IDENTIFIER T_ARGUMENT_IDENTIFIER T_ASSIGNMENT_IDENTIFIER
 
 %token T_PRINT T_RETURN T_IF T_ELSE T_FOR T_NEW <integertype_ptr> T_INT <booleantype_ptr> T_BOOL <none_ptr> T_NONE <integer_ptr> T_TRUE <integer_ptr>T_FALSE
@@ -29,7 +29,10 @@
 %left T_MULTIPLY T_DIVIDE
 %right T_NOT T_UNARY_MINUS
 %left T_DOT
-%token <identifier_ptr> T_IDENTIFIER
+%nonassoc P_METHOD 
+%nonassoc P_STATEMENTS
+%nonassoc P_DECLARATION
+%nonassoc P_MEMBER 
 
 %token T_OPEN_PARENS T_CLOSE_PARENS T_OPEN_BRACKET T_CLOSE_BRACKET 
 
@@ -51,11 +54,11 @@
 start: startp { $$ = new ProgramNode($1);}
 		;			
 			
-startp : startp startle {$$ = $1; $$->pushBack($2);}
+startp : startp startle {$$ = $1; $$->push_back($2);}
 		| { $$ = new std::list<ClassNode*>(); }
 		;
 
-startle: T_IDENTIFIER classtype T_OPEN_BRACKET members methods T_CLOSE_BRACKET {$$ = new ClassNode($1, $2, $4, $5);}
+startle: T_IDENTIFIER classtype T_OPEN_BRACKET members methods T_CLOSE_BRACKET{$$ = new ClassNode($1, $2, $4, $5);}
 		;
 		
 classtype: T_COLON T_IDENTIFIER { $$=$2; }
@@ -71,29 +74,32 @@ argumentsp: T_COMMA member argumentsp
 		|
 		;
 		
-methods: methods T_IDENTIFIER T_OPEN_PARENS arguments T_CLOSE_PARENS T_COLON returntype T_OPEN_BRACKET methodbody T_CLOSE_BRACKET
+methods: T_IDENTIFIER T_OPEN_PARENS arguments T_CLOSE_PARENS T_COLON returntype T_OPEN_BRACKET methodbody T_CLOSE_BRACKET methods %prec P_METHOD
 		|
 		;
 		
-members: type member T_IDENTIFIER
+members: members member %prec P_MEMBER
 		|
 		;
 		
-member: member T_IDENTIFIER type {$$=new DeclarationNode($1,$2);}
-		| { $$ = new std::list<IdentifierNode*>(); }
+member: type T_IDENTIFIER {std::list<IdentifierNode*>* k = new std::list<IdentifierNode*>(); k->push_back($2); $$=new DeclarationNode($1,k);}
 		;
 		
 methodbody: declarations statements returnstatement 
 		;
 		
-statements: statements statement 
+statements: statements statement %prec P_STATEMENTS
 		|
 		;
 		
-statement: assignment | methodcall | ifelse | forloop | printstatement 
-		;
+statement: assignment
+		| methodcall   
+		| ifelse 	
+		| forloop 
+		| printstatement 
+;
 		
-assignment: T_IDENTIFIER T_ASSIGNMENT expression
+assignment: T_IDENTIFIER T_ASSIGNMENT expression %prec P_STATEMENTS 
 		;
 		
 returnstatement: T_RETURN expression
@@ -102,13 +108,13 @@ returnstatement: T_RETURN expression
 		
 type: T_INT { $$ = new IntegerTypeNode();}
 		| T_BOOL { $$ = new BooleanTypeNode();}
-		| T_IDENTIFIER { $$ = new ObjectTypeNode($1);}
+		| T_IDENTIFIER{ $$ = new ObjectTypeNode($1);}
 		
 returntype:	type | T_NONE
 		;
 		
-declarations: declarations type declarationsp T_IDENTIFIER
-		|
+declarations: declarations type declarationsp T_IDENTIFIER  %prec P_DECLARATION 
+		|  %prec P_DECLARATION 
 		;
 		
 declarationsp: declarationsp T_IDENTIFIER T_COMMA
@@ -123,8 +129,8 @@ parametersp: parametersp T_COMMA expression
 		| expression
 		;
 		
-methodcall: T_IDENTIFIER paramlist
-		| T_IDENTIFIER T_DOT T_IDENTIFIER paramlist
+methodcall: T_IDENTIFIER paramlist %prec P_STATEMENTS 
+		| T_IDENTIFIER T_DOT T_IDENTIFIER paramlist %prec P_STATEMENTS 
 
 paramlist : T_OPEN_PARENS parameters T_CLOSE_PARENS	
 		;
