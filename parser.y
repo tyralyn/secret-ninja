@@ -11,17 +11,10 @@
     extern ASTNode* astRoot;
 %}
 
-%union {
-	char* base_char_ptr;
-	int base_int;
-}
-
 %error-verbose
 
 /* WRITEME: Copy your token and precedence specifiers from Project 3 here */
 %token <integer_ptr> T_NUMBER <identifier_ptr> T_IDENTIFIER
-%token T_CHILDCLASS_IDENTIFIER T_DECLARATION_IDENTIFIER T_ARGUMENT_IDENTIFIER T_ASSIGNMENT_IDENTIFIER
-
 %token T_PRINT T_RETURN T_IF T_ELSE T_FOR T_NEW <integertype_ptr> T_INT <booleantype_ptr> T_BOOL <none_ptr> T_NONE <integer_ptr> T_TRUE <integer_ptr>T_FALSE
 
 %token T_COLON T_SEMICOLON T_COMMA
@@ -72,7 +65,7 @@
 /* WRITEME: This rule is a placeholder. Replace it with your grammar
             rules from Project 3 */
 			
-start: startp {$$ = new ProgramNode($1);}
+start: startp {/*printf("hi\n");*/ $$ = new ProgramNode($1);}
 		;			
 			
 startp : startp startle {$$=$1; $$->push_back($2);}
@@ -82,8 +75,8 @@ startp : startp startle {$$=$1; $$->push_back($2);}
 startle: T_IDENTIFIER classtype T_OPEN_BRACKET members methods T_CLOSE_BRACKET {$$=new ClassNode($1, $2, $4, $5);}
 		;
 		
-classtype: {$$=NULL;}
-		| T_COLON T_IDENTIFIER {$$=$2;}
+classtype: T_COLON T_IDENTIFIER {$$=$2;}
+		| {$$=NULL;}
 		;	
 		
 arguments: type T_IDENTIFIER argumentsp { $$->push_back(new ParameterNode($1,$2));  $$->push_back($3);}
@@ -167,7 +160,7 @@ forloop: T_FOR assignment T_SEMICOLON expression T_SEMICOLON assignment T_OPEN_B
 printstatement: T_PRINT expression {$$ = new PrintNode($2);}
 		;
 		
-expression: expression T_PLUS expression { astRoot = new PlusNode($1, $3); }
+expression: expression T_PLUS expression { $$ = new PlusNode($1, $3); }
 		| expression T_MINUS expression { $$ = new MinusNode($1, $3); }
 		| expression T_MULTIPLY expression { $$ = new TimesNode($1, $3); }
 		| expression T_DIVIDE expression { $$ = new DivideNode($1, $3); }
@@ -185,7 +178,6 @@ expression: expression T_PLUS expression { astRoot = new PlusNode($1, $3); }
 		| T_NUMBER {$$ = new IntegerLiteralNode($1);}
 		| T_FALSE {$$ = new BooleanLiteralNode($1);}
 		| T_TRUE {$$ = new BooleanLiteralNode($1);}
-		| T_NEW T_IDENTIFIER {$$ = new NewNode($2, NULL);}
 		| T_NEW T_IDENTIFIER T_OPEN_PARENS parameters T_CLOSE_PARENS {$$ = new NewNode($2, $4);}
 		;
 		
